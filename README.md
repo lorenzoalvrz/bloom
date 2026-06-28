@@ -33,9 +33,12 @@ python3 build_final.py && echo "BUILD OK"
 
 That's it — fully operational in one message. Deliverable: `/mnt/user-data/outputs/bloom-3d.html`.
 
-> **This repo is public on purpose.** It contains only the visual frontend — no personal
-> data. The six petal names are placeholders (`PETAL_NAMES` in `build_final.py`). Keep any
-> real category/medical data OUT of this repo.
+> **This repo is public on purpose** — keep real personal/medical data OUT of it.
+> ⚠️ **The `CATS` array in `build_final.py` currently contains the real stack** (compound
+> names, doses, schedules) because the DS terminals were populated to build the functional
+> UI. Before pushing to a public remote, either **make the repo private** or **replace the
+> `CATS` values with placeholders** — Claude Code only needs the *structure*; the real data
+> lives in `stack_v5`.
 
 ---
 
@@ -132,7 +135,43 @@ uploaded transparent PNG before trusting it; JPEGs upload fine.
 
 ---
 
-## Still to do
-- Wire the six petals → real category data (the data-merge), which also supplies the real
-  `PETAL_NAMES`.
+## DS petal-detail terminals (click a petal)
+
+Clicking the top petal collapses the flower scene (canvas + WMP frame + tracker) while the
+rainbow backdrop **persists** (moved to `#bgkeep`, z1, outside `#scene`); a Nintendo-DS skin
+then zooms out into view. The two DS screens are **keyed transparent** — an SVG mask on
+`#dsbody` punches holes at both screen rects, and `#ds` is transparent, so the rainbow shows
+straight through both screens.
+
+- Each screen hosts a glowing petal-color terminal window (`#dswT` top, `#dswB` bottom): neon
+  frame + HUD corner brackets (`.dswframe`) + CRT scanlines, glow cast onto the darkened body.
+  CRT power-on (`@keyframes dswon`) when the DS settles, power-off (`dswoff`) on back. The back
+  transition reverses the forward (windows off → DS zoom out → flower on), with the flower
+  onset overlapped so there's no static dead frame.
+- Per-petal color = `COLS[clickIdx]` set as `--dc`. Body darkened by `#dsdark` (40% black) over
+  the tuned `#dstint` multiply so the glow reads; glow reach = the `var(--dc)` box-shadow layers
+  on `.dswin`. Screen rects (as % of the 736×1308 skin) live in `#dswT`/`#dswB` and the mask path.
+
+### ⭐ THE CLAUDE CODE SEAM (data/API wiring)
+
+All terminal content is data-driven from the **`CATS`** array (top of CORE), indexed by petal
+(`clickIdx`): `CATS[i] = {cat, top:{name, rows|calc|checks, tap|btn|act|streak…}, bot:{…}}`.
+Each screen renders via `dsSeg(seg, side, i)` → `dsFill(i)`.
+
+Interactions are wired **front-end only** today, with in-session state in **`dsState` / `dsSt(i)`**
+(`{done, checked, trip, streak, logged, promoted}`), driven by one delegated click handler on
+`#dsstage`: tap-to-take rows, packing −/+ day calculator (computes units from weekly frequency),
+checklist toggles, injectables LOG, pending PROMOTE, topicals streak.
+
+**The wiring task:** point `CATS` reads and `dsState` reads/writes at the real `stack_v5` store
+(oral time-decay, schedule-gated injection logging, inventory, streaks) so logging actually
+mutates inventory and the schedule reads real dates. Nothing in the render/interaction layer
+needs to change — only the data source behind `CATS` / `dsState`.
+
+---
+
+## Still to do (Claude Code: the data/API wiring)
+- Bind `CATS` + `dsState` to the real `stack_v5` store (see **THE CLAUDE CODE SEAM**): live
+  counts/days-left, calculated packing quantities, log/check/streak persistence.
 - Wire Nelson's terminal to the live Claude API.
+- Hair routine content for the Topicals top screen (still `TBD`).
